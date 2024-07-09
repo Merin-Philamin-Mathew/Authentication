@@ -64,18 +64,25 @@
 
 from .models import CustomUser, UserProfile
 from .serializers import UserSerializer, UserUpdateSerializer
-from django.views import View
 
-
+from django.conf import settings
 from django.contrib.auth import authenticate,login,logout
 
-from rest_framework.views import APIView
 from rest_framework import status, permissions
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
 
+
+def get_token_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh':str(refresh),
+        'access':str(refresh.access_token),
+    }
 
 class AdminOnly(permissions.BasePermission):
     print("app/view/adminOnly")
@@ -88,11 +95,10 @@ class Register(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        print("app/views/register")
         data = request.data
         print(data)
         serializer = UserSerializer(data = data)
-        
+        print("serializer vach")
         if serializer.is_valid():
             CustomUser.objects.create_user(email=serializer.validated_data['email'], first_name=serializer.validated_data['first_name'], password=serializer.validated_data['password'], last_name=serializer.validated_data['last_name'])
             print(serializer.data,'lsllsl')
@@ -187,15 +193,22 @@ class AdminHome(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
         
 class LogoutView(APIView):
-    permission_classes = [permissions.AllowAny]
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        return Response({'message': 'You are authenticated'})
+    
     def post(self, request):
-        print("app/view/logoutView")
+        data = request.data
+        # Process the data here
         print("user",request.user)
         print("Headers:", request.headers)
         print("User:", request.user)
-        logout(request)
+        # logout(request)
         print("logged out")
         try:
+            print('sdlkfls ')
             refresh_token = request.data["refresh_token"]
             print(refresh_token,'token')
             token = RefreshToken(refresh_token)
@@ -205,4 +218,24 @@ class LogoutView(APIView):
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             return Response(status=status.HTTP_400_BAD_REQUEST)
+        
+
+class MyProtectedView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = CustomUser.objects.all()
+        serializer = UserSerializer(user, many=True)
+        return Response({'message': 'You are authenticated'},serializer.data)
+    
+        
+class UsersView(APIView):
+    permission_classes = [AdminOnly]
+
+    def get(self, request):
+        user = CustomUser.objects.all()
+        serializer = UserSerializer(user, many=True)
+        return Response(serializer.data)
+        
                         

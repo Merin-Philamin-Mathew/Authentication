@@ -53,7 +53,7 @@ from .models import UserProfile
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['email', 'first_name', 'last_name', 'password']
+        fields = ['email', 'first_name', 'last_name', 'is_staff', 'password']
 
 class UserUpdateSerializer(serializers.ModelSerializer):
     profile_pic = serializers.ImageField(required=True)

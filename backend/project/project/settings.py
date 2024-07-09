@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
 
 
+
 ]
 
 MIDDLEWARE = [
@@ -97,9 +98,9 @@ CORS_ALLOWED_ORIGINS  = [
 REST_FRAMEWORK = {
     
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        # 'cookieapp.authenticate.CustomAuthentication',
-
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'app.authenticate.CustomAuthentication',
+        # 'rest_framework.authentication.TokenAuthentication'
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
@@ -172,7 +173,7 @@ USE_I18N = True
 USE_TZ = True
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,

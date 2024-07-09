@@ -20,4 +20,7 @@ urlpatterns = [
     path('profile/update/', views.UpdateProfile.as_view(),name='update'),
     path('adminpage/', views.AdminHome.as_view(),name='adminpage'),
     path('logout/', views.LogoutView.as_view(),name='logout'),
+    path('protected/', views.MyProtectedView.as_view(),name='protected'),
+    path('users/', views.UsersView.as_view(),name='users'),
+
 ]
