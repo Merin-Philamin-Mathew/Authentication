@@ -1,72 +1,10 @@
-# from django.shortcuts import render
-# from django.http import JsonResponse
-# from rest_framework.response import Response
-# from rest_framework.decorators import api_view, permission_classes
-# from rest_framework.views import APIView
-# # from .data import data
-# from .models import Data
-# from django.contrib.auth.models import User
-# from .serializers import DataSerializers, UserSerializer, UserSerializersWithToken
-# from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-# from rest_framework_simplejwt.views import TokenObtainPairView
-# from rest_framework.permissions import IsAdminUser, IsAuthenticated
-# from django.contrib.auth.models import User
-
-# # Create your views here.
-
-# @api_view(['POST','GET'])
-# def getRoutes(request):
-#     return Response("hai")
-
-
-# class DataView(APIView):
-#     def get(self, request, pk=None):
-#         if pk:
-#             # Get a single product
-#             data = Data.objects.get(_id=pk)
-#             serializer = DataSerializers(data,many=False)
-#             return Response(serializer.data)
-        
-#         else:
-#             datas = Data.objects.all()
-#             serializer = DataSerializers(datas,many=True)
-#             return Response(serializer.data)
-        
-
-
-# @permission_classes([IsAuthenticated])
-# class UserProfileView(APIView):
-#     def get(self, request):
-#         user = request.user
-#         serializer = UserSerializer(user, many=False)
-#         return Response(serializer.data)
-    
-# @permission_classes([IsAuthenticated])
-# class UsersView(APIView):
-#     def get(self, request):
-#         user = User.objects.all()
-#         serializer = UserSerializer(user, many=True)
-#         return Response(serializer.data)
-            
-# class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
-   
-#     def validate(self, attrs):
-#         data = super().validate(attrs)
-#         serializers = UserSerializersWithToken(self.user).data
-#         for k,v in serializers.items():
-#             data[k] = v
-
-#         return data
-    
-# class MyTokenObtainPairView(TokenObtainPairView):
-#     serializer_class = MyTokenObtainPairSerializer
-
 
 from .models import CustomUser, UserProfile
 from .serializers import UserSerializer, UserUpdateSerializer
 
 from django.conf import settings
 from django.contrib.auth import authenticate,login,logout
+from django.middleware import csrf
 
 from rest_framework import status, permissions
 from rest_framework.views import APIView
@@ -76,13 +14,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
 
-
-def get_token_for_user(user):
-    refresh = RefreshToken.for_user(user)
-    return {
-        'refresh':str(refresh),
-        'access':str(refresh.access_token),
-    }
 
 class AdminOnly(permissions.BasePermission):
     print("app/view/adminOnly")
@@ -101,7 +32,7 @@ class Register(APIView):
         print("serializer vach")
         if serializer.is_valid():
             CustomUser.objects.create_user(email=serializer.validated_data['email'], first_name=serializer.validated_data['first_name'], password=serializer.validated_data['password'], last_name=serializer.validated_data['last_name'])
-            print(serializer.data,'lsllsl')
+            print(serializer.data,'serialized data')
             print(data,'user data')
             return Response({'message': 'Data received'}, status=status.HTTP_200_OK)
         else:
@@ -112,7 +43,7 @@ class LoginView(APIView):
     print('app/view/login')
     permission_classes = [permissions.AllowAny]
     def post(self, request):
-        print('app/view/login')
+        print('app/view/login/post')
         email = request.data['email']
         password = request.data['password']
         print(email, password)
@@ -127,20 +58,28 @@ class LoginView(APIView):
         
         login(request, user)
         refresh = RefreshToken.for_user(user)
-        refresh['first_name'] = str(user.first_name)
-        user_profile = CustomUser.objects.get(email=request.user)
-        serializer = UserSerializer(user_profile)
-
-      
-
+        refresh["first_name"] = str(user.first_name)
         content = {
-            'refresh':str(refresh),
-            'access':str(refresh.access_token),
-            'isAdmin':user.is_superuser,
-            "data":serializer.data
+            'isAdmin' : user.is_superuser,
         }
-    
-        return Response(content, status=status.HTTP_200_OK)
+        response = Response(content, status = status.HTTP_200_OK)
+
+        response.set_cookie(
+            key = settings.SIMPLE_JWT['AUTH_COOKIE'],
+            value = str(refresh.access_token),
+            secure= settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+            httponly = settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+            samesite = settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
+        )
+        response.set_cookie(
+            key = 'refresh_token',
+            value = str(refresh),
+            secure = settings.SIMPLE_JWT['AUTH_COOKIE_SECURE'],
+            httponly = settings.SIMPLE_JWT['AUTH_COOKIE_HTTP_ONLY'],
+            samesite = settings.SIMPLE_JWT['AUTH_COOKIE_SAMESITE']
+        )
+
+        return response
 
 
 class Profile(APIView):
@@ -205,7 +144,7 @@ class LogoutView(APIView):
         print("user",request.user)
         print("Headers:", request.headers)
         print("User:", request.user)
-        # logout(request)
+        logout(request)
         print("logged out")
         try:
             print('sdlkfls ')
